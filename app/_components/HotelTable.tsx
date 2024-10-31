@@ -16,6 +16,7 @@ import { HiPencil, HiTrash } from "react-icons/hi";
 import { deleteHotel, Hotel } from "../_store/hoteSlice";
 import { useState } from "react";
 import Form from "./Form";
+import { useSearchParams } from "next/navigation";
 
 interface HotelDashboardProps {
   filter: string;
@@ -23,6 +24,7 @@ interface HotelDashboardProps {
 
 export default function HotelTable({ filter }: HotelDashboardProps) {
   const { hotels } = useSelector((state: RootState) => state.hotels);
+  const searchParams = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
   const dispatch = useDispatch();
@@ -38,6 +40,24 @@ export default function HotelTable({ filter }: HotelDashboardProps) {
   if (filter === "3star")
     displayedHotels = hotels.filter((hotel) => hotel.category === "3star");
 
+  //Sorting
+  const sortBy = searchParams.get("sortBy") || "";
+  const [field, direction] = sortBy.split("-");
+  const modifier = direction === "asc" ? 1 : -1;
+  const sortedHotels = displayedHotels
+    ? [...displayedHotels].sort(
+        //eslint-disable-next-line
+        (a: Hotel, b: Hotel) => {
+          // If sorting by name, use localeCompare for proper string comparison across the sorted areas
+          if (field === "name" || field === "category") {
+            return a[field].localeCompare(b[field]) * modifier;
+          }
+          // For numeric fields (price, dates, etc.), use number subtraction
+          return 0;
+        }
+      )
+    : [];
+
   //close show form
   function handleClose() {
     setShowForm(false);
@@ -47,11 +67,11 @@ export default function HotelTable({ filter }: HotelDashboardProps) {
   function handleEditClick(id: string) {
     //find the particular item id clicked
     const [item] = hotels.filter((hotel) => hotel.id === id);
-    console.log(item);
+
     setShowForm(true);
     setSelectedHotel(item);
   }
-  console.log(hotels);
+
   return (
     <TableContainer component={Paper}>
       <Table>
@@ -73,7 +93,8 @@ export default function HotelTable({ filter }: HotelDashboardProps) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {displayedHotels?.map((hotel) => (
+          {/* {displayedHotels?.map((hotel) => ( */}
+          {sortedHotels?.map((hotel) => (
             <TableRow
               key={hotel.id}
               sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
